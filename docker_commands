@@ -1,0 +1,64 @@
+
+# Pulling RStudio Image from Docker Hub
+docker pull rocker/rstudio:4
+# This command downloads the RStudio image tagged with version 4 from the rocker/rstudio repository on Docker Hub to your local machine.
+
+# Pulling Tidyverse Image for amd64 Architecture
+docker pull --platform linux/amd64 rocker/tidyverse
+# This command specifically downloads the amd64 version of the rocker/tidyverse Docker image, ensuring compatibility with macOS (or other systems using amd64 architecture). The Tidyverse image includes a suite of R packages designed for data science.
+# Annotation: Installs the amd64 version of the tidyverse image on a Mac.
+
+# Running an RStudio Server Docker Container
+docker run -ti -e PASSWORD=yourpassword --name my_first_container -v "/Users/giaco/:/home/rstudio/" -p 8787:8787 rocker/rstudio
+# This command starts a new Docker container named my_first_container from the rocker/rstudio image. It maps port 8787 of the container to port 8787 on the host, allowing you to access RStudio Server through your web browser at localhost:8787. The -v option mounts a directory from your host (/Users/giaco/) to a directory inside the container (/home/rstudio/), enabling file sharing between your host and the container. You must replace yourpassword with a password of your choice to log into RStudio Server.
+# Windows Variant: For Windows users, the volume mount path changes to -v "/mnt/c/Users/giaco/:/home/rstudio/".
+
+# Listing Docker Images
+docker images
+# This command lists all Docker images currently installed on your system.
+
+# Listing Running Docker Containers
+docker ps
+# This command displays a list of all currently running Docker containers.
+
+# Listing All Docker Containers
+docker ps -a
+# This command lists all Docker containers on your system, both running and stopped.
+
+# Creating a New Docker Image from a Container
+docker commit container_id myusername/mynewcontainername:tag
+# This command creates a new Docker image from a container's current state. container_id should be replaced with the ID of your container, and myusername/mynewcontainername:tag specifies the repository, name, and tag for the new image.
+
+# Save Docker image to local computer 
+
+docker save  bignardig/dissertation_project | gzip > myimage_latest.tar.gz
+
+# LINUX COMMANDS FOR DOCKER CONTAINERS
+
+# Executing Commands Inside a Container
+docker exec -it container_id bash
+# This command opens a bash shell inside the specified container, allowing you to execute Linux commands directly within the container. Use docker ps to find the container_id.
+
+# Updating Package Lists
+sudo apt-get update
+# Before installing new packages, it's a good practice to update the list of available packages and their versions. You would typically run this command after accessing the container's bash shell.
+
+# Installing Development Libraries
+sudo apt-get install -y \
+    libcurl4-gnutls-dev \
+    libssl-dev \
+    libxml2-dev \
+    libgit2-dev \
+    libfontconfig1-dev \
+    libcairo2-dev \
+    libharfbuzz-dev \
+    libfribidi-dev \
+    libfreetype6-dev \
+    libpng-dev \
+    libtiff5-dev \
+    libjpeg-dev \
+    libxt6 \
+	zlib1g-dev
+
+
+# This command installs various development libraries inside the Docker container, which are often necessary for compiling and installing R packages that require system dependencies.
