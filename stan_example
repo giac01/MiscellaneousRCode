@@ -1,0 +1,118 @@
+# Load Stuff -------------------------------------------------------------------
+rm(list=ls(all.names = T))
+gc()
+library(brms)
+library(tidyverse)
+library(tidybayes)
+library(future)
+library(future.apply)
+
+set.seed(19)
+
+# Function to simulate data ----------------------------------------------------
+# Source all simulation functions 
+# List all .R files in the folder
+# list.files(file.path("helper_functions"), pattern = "\\.R$", full.names = TRUE) %>%
+#   lapply(., function(x) {print(x);source(x)})
+
+# Simulate data by specifying the standardised loading - measurement error set to 1 - lambda^2
+
+sim_factor_stnd = function(
+    n_rows,              # SCALAR: Sample Size
+    std_loading,         # SCALAR OR VECTOR: Standardized Factor Loading
+    n_items,             # SCALARL Number of items,
+    intercepts,
+    debug = FALSE
+    
+){
+  if (length(std_loading)==1 & n_items > 1){
+    std_loading = rep(std_loading, n_items)
+  }
+  if (is.null(intercepts)){
+    intercepts  = rep(0, n_items)
+  }
+  
+  error_variance = 1^2 - std_loading^2        # Set the error variance to 1-loading^2 (because obs variance =1)
+  
+  true_scores = rnorm(n_rows)
+  dat         = sapply(1:n_items, function(i) intercepts[i] + std_loading[i]*true_scores + rnorm(n_rows, sd = sqrt(error_variance[i]))) # Note the sd(true_score) and sd(error) must be kept at 1 for the loading calculation to make sense!
+  dat         = data.frame(true_scores,dat) 
+  
+  if (debug){
+    cat("Error Variance: \n")
+    print(error_variance)
+    
+    cat("std_loading: \n")
+    print(std_loading)
+    
+    dat$mean = dat %>%
+      select(starts_with("X")) %>%
+      apply(.,1,mean)
+    
+    cat("\nCor(t, x):\n")
+    print(round(cor(dat), digits = 2))
+    
+    cat("\nCor(t, x) SQAURED :\n")
+    print(round(cor(dat)^2, digits = 2))
+    
+    cat("\nCov(t, x):\n")
+    print(round(cov(dat), digits = 2))
+    
+    
+  }
+  
+  return(dat)
+}
+
+
+
+# Simulate Factor Data ---------------------------------------------------------
+
+n_rows      = 10000
+n_items     = 4
+std_loading = c(.25,.4,.6,.75)
+std_loading = c(.5,0,.2,.1)
+std_loading = c(.8,.1,.1,.1)
+intercepts  = c(0,0,0,0)
+
+dat = sim_factor_stnd(
+  debug       = T,
+  n_rows      = n_rows,
+  n_items     = n_items,
+  std_loading = std_loading,
+  intercepts  = intercepts
+)
+
+dat_scale = scale(dat, center = TRUE, scale = TRUE) %>%
+  data.frame()
+
+dat_long = dat_scale %>%
+  dplyr::select(-true_scores, -mean) %>%
+  tibble::rowid_to_column(., var = "pps") %>%
+  tidyr::pivot_longer(cols = starts_with("X")) %>%
+  mutate(name = factor(name))
+
+library(rstan)
+
+dat = list(
+  n = nrow(dat_long),
+  pps_n = length(unique(dat_long$pps)),
+  item_n = length(unique(dat_long$name)),
+  item   = match(dat_long$name, unique(dat_long$name)),
+  pps    = dat_long$pps,
+  y = dat_long$value
+  )
+
+# CMDSTANR version -------------------------------------------------------------
+library(cmdstanr)
+mod <- cmdstan_model(file.path("helper_functions","stan_factor_model_v5exp.stan"))
+
+fit1 <- mod$sample(
+  data = dat,
+  seed = 123,
+  chains = 7,
+  parallel_chains = 7,
+  refresh = 500, # print update every 500 iters
+  iter_warmup = 1000,
+  iter_sampling = 1000
+)
