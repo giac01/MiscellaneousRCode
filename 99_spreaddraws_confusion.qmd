@@ -1,11 +1,13 @@
 ---
 title: "Confusion about spread_draws"
-format: html
+format: 
+  html:
+    code-fold: true
 editor: visual
 cache: true
 ---
 
-Load data
+## Load data 
 
 ```{r}
 library(brms)
@@ -16,7 +18,7 @@ data_long_summarised = readRDS(file = file.path("data","osf_hedge_cwzds","data_l
 data_long_summarised
 ```
 
-Fit model
+## Fit model
 
 ```{r}
 
@@ -38,7 +40,7 @@ model_time_1 = brms::brm(
 
 ```
 
-Model Output
+## Model Output
 
 ```{r}
 model_time_1
@@ -49,6 +51,8 @@ model_time_1
 
 tidybayes::get_variables(model_time_1)
 ```
+
+## Extract draws using spread_draws
 
 spread_draws to get posterior draws for participant 1 on the condition_contrast coefficient.
 
@@ -67,7 +71,7 @@ pps_1_draws = model_time_1 %>%
 
 ```
 
-brms to get same posterior draws\
+## brms to get same posterior draws
 
 ```{r}
 
@@ -77,6 +81,8 @@ subj_draws_time_1_brms = as_draws_df(model_time_1) %>%
 pps_1_draws_brms = subj_draws_time_1_brms$`r_pps[1,condition_contrast]`
 
 ```
+
+## Comparison 
 
 In both cases i want to analyse the posterior distribution for participant 1.
 
@@ -104,8 +110,7 @@ table(pps_1_draws$.chain[1:10000])
 
 Anyway, I'm a little confused if there's something i've done wrong here or if there's been a strange interaction with brms here.
 
-My setup:\
-\
+My setup:
 
 ```{r}
 
